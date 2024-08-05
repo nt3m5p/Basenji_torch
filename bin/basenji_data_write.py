@@ -32,6 +32,7 @@ basenji_data_write.py
 Write TF Records for batches of model sequences.
 """
 
+
 ################################################################################
 # main
 ################################################################################
@@ -68,7 +69,7 @@ def main():
         fasta_file = args[0]
         seqs_bed_file = args[1]
         seqs_cov_dir = args[2]
-        pd_file = args[3]
+        pt_file = args[3]
     
     ################################################################
     # read model sequences
@@ -76,7 +77,7 @@ def main():
     model_seqs = []
     for line in open(seqs_bed_file):
         a = line.split()
-        model_seqs.append(ModelSeq(a[0],int(a[1]),int(a[2]),None))
+        model_seqs.append(ModelSeq(a[0], int(a[1]), int(a[2]), None))
     
     if options.end_i is None:
         options.end_i = len(model_seqs)
@@ -110,7 +111,7 @@ def main():
     # read each target
     for ti in range(num_targets):
         seqs_cov_open = h5py.File(seqs_cov_files[ti], 'r')
-        targets[:,:,ti] = seqs_cov_open['targets'][options.start_i:options.end_i,:]
+        targets[:, :, ti] = seqs_cov_open['targets'][options.start_i:options.end_i, :]
         seqs_cov_open.close()
     
     ################################################################
@@ -123,10 +124,10 @@ def main():
             msi = options.start_i + si
             
             # determine unmappable null value
-            seq_target_null = np.percentile(targets[si], q=[100*options.umap_clip], axis=0)[0]
+            seq_target_null = np.percentile(targets[si], q=[100 * options.umap_clip], axis=0)[0]
             
             # set unmappable positions to null
-            targets[si,unmap_mask[msi,:],:] = np.minimum(targets[si,unmap_mask[msi,:],:], seq_target_null)
+            targets[si, unmap_mask[msi, :], :] = np.minimum(targets[si, unmap_mask[msi, :], :], seq_target_null)
     
     elif options.umap_npy is not None and options.umap_tfr:
         unmap_mask = np.load(options.umap_npy)
@@ -137,7 +138,8 @@ def main():
     # open FASTA
     fasta_open = pysam.Fastafile(fasta_file)
     
-    dataset={'sequence':[],'target':[]}
+    sequence_list = []
+    target_list = []
     # define options
     for si in range(num_seqs):
         msi = options.start_i + si
@@ -162,30 +164,32 @@ def main():
         else:
             targets_si = targets[si]
         
-        assert(np.isinf(targets_si).sum() == 0)
-        dataset['sequence'].append(seq_1hot)
-        dataset['target'].append(targets_si)
-        
-    # write example
-    torch.save(dataset, pd_file)
-        
+        assert (np.isinf(targets_si).sum() == 0)
+        sequence_list.append(seq_1hot)
+        target_list.append(targets_si)
+    
+    torch.save({'sequence': torch.tensor(np.array(sequence_list)).float(),
+                'target': torch.tensor(np.array(target_list)).float()},
+               pt_file)
     
     fasta_open.close()
 
 
 def tround(a, decimals):
     """ Truncate to the specified number of decimals. """
-    return np.true_divide(np.floor(a * 10**decimals), 10**decimals)
+    return np.true_divide(np.floor(a * 10 ** decimals), 10 ** decimals)
+
 
 def rround(a, decimals):
     """ Round to the specified number of decimals, randomly sampling
         the last digit according to a bernoulli RV. """
     a_dtype = a.dtype
     a = a.astype('float32')
-    dec_probs = (a - tround(a, decimals)) * 10**decimals
+    dec_probs = (a - tround(a, decimals)) * 10 ** decimals
     dec_bin = np.random.binomial(n=1, p=dec_probs)
-    a_dec = tround(a, decimals) + dec_bin / 10**decimals
+    a_dec = tround(a, decimals) + dec_bin / 10 ** decimals
     return np.around(a_dec.astype(a_dtype), decimals)
+
 
 def fetch_dna(fasta_open, chrm, start, end):
     """Fetch DNA when start/end may reach beyond chromosomes."""
@@ -196,7 +200,7 @@ def fetch_dna(fasta_open, chrm, start, end):
     
     # add N's for left over reach
     if start < 0:
-        seq_dna = 'N'*(-start)
+        seq_dna = 'N' * (-start)
         start = 0
     
     # get dna
@@ -204,7 +208,7 @@ def fetch_dna(fasta_open, chrm, start, end):
     
     # add N's for right over reach
     if len(seq_dna) < seq_len:
-        seq_dna += 'N'*(seq_len-len(seq_dna))
+        seq_dna += 'N' * (seq_len - len(seq_dna))
     
     return seq_dna
 
