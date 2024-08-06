@@ -14,21 +14,21 @@ class StochasticShift(nn.Module):
 
 
 class StochasticReverseComplement(nn.Module):
-    def __init__(self, reverse):
+    def __init__(self):
         super(StochasticReverseComplement, self).__init__()
-        self.reverse = reverse
     
     def forward(self, x):
+        x = torch.index_select(x, dim=1, index=torch.tensor([2, 3, 0, 1]))
+        x = torch.flip(x, dims=[2])
         return x
 
 
 class SwitchReverse(nn.Module):
-    def __init__(self, reverse):
+    def __init__(self):
         super(SwitchReverse, self).__init__()
-        self.reverse = reverse
     
     def forward(self, x):
-        return x
+        return torch.flip(x, dims=[1])
 
 
 class ConvBlock(nn.Module):
@@ -45,15 +45,11 @@ class ConvBlock(nn.Module):
 
 
 class ConvConvDropBlock(nn.Module):
-    def __init__(self, cov1=None, cov2=None, dropout=0.25, dilation=1):
+    def __init__(self, dropout=0.25, dilation=1):
         super(ConvConvDropBlock, self).__init__()
-        if cov1 is None:
-            cov1 = [72, 32, 3, 1, 1, dilation]
-        if cov2 is None:
-            cov2 = [32, 72, 1, 1, 0, 1]
-        self.conv_block1 = ConvBlock(cov1[0], cov1[1], cov1[2], cov1[3], cov1[4])
-        self.conv_block2 = ConvBlock(cov2[0], cov2[1], cov2[2], cov2[3], cov2[4])
-        self.dropout = nn.Dropout(p=dropout)
+        self.conv_block1 = ConvBlock(72, 32, 3, 1, dilation, dilation)
+        self.conv_block2 = ConvBlock(32, 72, 1, 1, 0, 1)
+        self.dropout = nn.Dropout1d(p=dropout)
     
     def forward(self, x):
         x = self.conv_block1(x)
@@ -65,7 +61,7 @@ class SeqNN(nn.Module):
     def __init__(self):
         super(SeqNN, self).__init__()
         self.reverse = True
-        self.stochastic_reverse_complement = StochasticReverseComplement(self.reverse)
+        self.stochastic_reverse_complement = StochasticReverseComplement()
         self.stochastic_shift = StochasticShift(3)
         self.conv_block = ConvBlock(4, 64, kernel_size=15, stride=1, padding=7)
         self.conv_block1 = ConvBlock(64, 64, kernel_size=5, stride=1, padding=2)
@@ -79,19 +75,30 @@ class SeqNN(nn.Module):
         self.conv_block3 = ConvBlock(72, 64, kernel_size=1, stride=1, padding=0)
         self.dropout = nn.Dropout(p=0.05)
         self.fc1 = nn.Linear(64, 3)
-        self.switch_reverse = SwitchReverse(self.reverse)
+        self.switch_reverse = SwitchReverse()
     
     def forward(self, x):
         x = x.transpose(1, 2)
-        stochastic_reverse_complement = self.stochastic_reverse_complement(x)
-        stochastic_shift = self.stochastic_shift(stochastic_reverse_complement)
+        
+        # shift and stochastic reverse
+        self.reverse = False #torch.rand(1).item() > 0.5
+        if self.training and self.reverse:
+            stochastic_reverse_complement = self.stochastic_reverse_complement(x)
+            stochastic_shift = self.stochastic_shift(stochastic_reverse_complement)
+        else:
+            stochastic_shift = x
+        
+        # conv_block x1
         batch_normalization = self.conv_block(stochastic_shift)
         max_pooling1d = F.max_pool1d(batch_normalization, kernel_size=8)
+        
+        # conv_tower x2
         batch_normalization_1 = self.conv_block1(max_pooling1d)
         max_pooling1d_1 = F.max_pool1d(batch_normalization_1, kernel_size=4)
         batch_normalization_2 = self.conv_block2(max_pooling1d_1)
         max_pooling1d_2 = F.max_pool1d(batch_normalization_2, kernel_size=4)
         
+        # dilated_residual x6
         dropout = self.conv_conv_dropout(max_pooling1d_2)
         add = max_pooling1d_2 + dropout
         dropout_1 = self.conv_conv_dropout1(add)
@@ -104,12 +111,20 @@ class SeqNN(nn.Module):
         add_4 = add_3 + dropout_4
         dropout_5 = self.conv_conv_dropout5(add_4)
         add_5 = add_4 + dropout_5
+        
+        # conv_block
         batch_normalization = self.conv_block3(add_5)
         dropout_6 = self.dropout(batch_normalization)
-        gelu_16 = F.gelu(dropout_6)
-        gelu_16 = gelu_16.permute(0, 1, 2).view(-1, 64)
-        dense = self.fc1(gelu_16)
-        dense = dense.view(-1, 1024, 3)
-        switch_reverse = self.switch_reverse(dense)
-        self.reverse = not self.reverse
+        
+        # fully connected
+        gelu_16 = F.gelu(dropout_6)                                     # 4, 64, 1024
+        gelu_16 = gelu_16.permute(0, 2, 1)                              # 4, 1024, 64
+        dense = self.fc1(gelu_16)                                       # 4*1024, 3
+        
+        # reverse back
+        if self.training and self.reverse:
+            switch_reverse = self.switch_reverse(dense)
+        else:
+            switch_reverse = dense
+        # softplus
         return F.softplus(switch_reverse)
