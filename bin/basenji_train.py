@@ -9,6 +9,7 @@ from torch import optim
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 
+
 from basenji.CustomDataset import CustomDataset
 from basenji.seqnn import SeqNN
 from basenji.trainer import Trainer
