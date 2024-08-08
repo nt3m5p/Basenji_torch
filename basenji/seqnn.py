@@ -18,7 +18,7 @@ class StochasticReverseComplement(nn.Module):
         super(StochasticReverseComplement, self).__init__()
     
     def forward(self, x):
-        x = torch.index_select(x, dim=1, index=torch.tensor([2, 3, 0, 1]))
+        x = torch.index_select(x, dim=1, index=torch.tensor([3, 2, 1, 0]))
         x = torch.flip(x, dims=[2])
         return x
 
@@ -62,7 +62,7 @@ class SeqNN(nn.Module):
         super(SeqNN, self).__init__()
         self.reverse = True
         self.stochastic_reverse_complement = StochasticReverseComplement()
-        self.stochastic_shift = StochasticShift(3)
+        self.stochastic_shift = StochasticShift(4)
         self.conv_block = ConvBlock(4, 64, kernel_size=15, stride=1, padding=7)
         self.conv_block1 = ConvBlock(64, 64, kernel_size=5, stride=1, padding=2)
         self.conv_block2 = ConvBlock(64, 72, kernel_size=5, stride=1, padding=2)
@@ -78,10 +78,11 @@ class SeqNN(nn.Module):
         self.switch_reverse = SwitchReverse()
     
     def forward(self, x):
+        # batch_size, 101372, 4  --》 batch_size, 4, 101372
         x = x.transpose(1, 2)
         
         # shift and stochastic reverse
-        self.reverse = False #torch.rand(1).item() > 0.5
+        self.reverse = torch.rand(1).item() > 0.5
         if self.training and self.reverse:
             stochastic_reverse_complement = self.stochastic_reverse_complement(x)
             stochastic_shift = self.stochastic_shift(stochastic_reverse_complement)
@@ -117,9 +118,9 @@ class SeqNN(nn.Module):
         dropout_6 = self.dropout(batch_normalization)
         
         # fully connected
-        gelu_16 = F.gelu(dropout_6)                                     # 4, 64, 1024
-        gelu_16 = gelu_16.permute(0, 2, 1)                              # 4, 1024, 64
-        dense = self.fc1(gelu_16)                                       # 4*1024, 3
+        gelu_16 = F.gelu(dropout_6)                                     # batch_size, 64, 1024
+        gelu_16 = gelu_16.permute(0, 2, 1)                              # batch_size, 1024, 64
+        dense = self.fc1(gelu_16)                                       # batch_size, 1024, 3
         
         # reverse back
         if self.training and self.reverse:

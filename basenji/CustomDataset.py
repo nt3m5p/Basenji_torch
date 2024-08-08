@@ -12,7 +12,7 @@ class CustomDataset(Dataset):
         for data_dir in data_dirs:
             file_list = glob.glob(file_pattern % data_dir)
             for file_path in file_list:
-                data = torch.load(file_path)
+                data = torch.load(file_path, weights_only=True)
                 self.data.extend(data['sequence'])
                 self.targets.extend(data['target'])
 
