@@ -15,7 +15,6 @@
 # =========================================================================
 from __future__ import print_function
 
-import collections
 import gzip
 import heapq
 import json
@@ -26,13 +25,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import datetime
 from optparse import OptionParser
 
 import numpy as np
 import pandas as pd
 
 from basenji import genome, util
+from basenji.namedtuples import Contig, ModelSeq
 
 try:
     import slurm
@@ -968,11 +967,6 @@ def write_seqs_bed(bed_file, seqs, labels=False):
             line += '\t%s' % seqs[i].label
         print(line, file=bed_out)
     bed_out.close()
-
-
-################################################################################
-Contig = collections.namedtuple('Contig', ['chr', 'start', 'end'])
-ModelSeq = collections.namedtuple('ModelSeq', ['chr', 'start', 'end', 'label'])
 
 ################################################################################
 if __name__ == '__main__':

@@ -4,13 +4,14 @@
 import os
 import sys
 from optparse import OptionParser
+
 import h5py
 import numpy as np
 import pysam
 import torch
-from basenji.dna_io import dna_1hot
-from bin.basenji_data import ModelSeq
 
+from basenji.dna_io import dna_1hot
+from basenji.namedtuples import ModelSeq
 
 
 ################################################################################
