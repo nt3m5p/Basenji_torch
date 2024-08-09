@@ -21,11 +21,8 @@ import h5py
 import numpy as np
 import pysam
 import torch
-import torch.utils.data as data_utils
 
-from basenji.dna_io import dna_1hot_index, dna_1hot
-
-
+from basenji.dna_io import dna_1hot
 from bin.basenji_data import ModelSeq
 
 """

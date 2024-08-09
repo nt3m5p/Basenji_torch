@@ -133,7 +133,7 @@ def main():
     (options, args) = parser.parse_args()
     
     # 在输出路径上添加上当前的时间
-    options.out_dir = options.out_dir + datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    options.out_dir = options.out_dir
     
     if len(args) != 2:
         parser.error('Must provide FASTA and sample coverage labels and paths.')
