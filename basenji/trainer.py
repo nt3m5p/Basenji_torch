@@ -1,6 +1,9 @@
+import time
+
 import torch
 from torch import nn
 from torchmetrics.regression import PearsonCorrCoef
+
 
 
 class Trainer:
@@ -14,6 +17,10 @@ class Trainer:
         self.clip_norm = options.clip_norm
         self.model_path = options.model_path
         self.log_interval = options.log_interval
+        self.epoch = 0
+        self.epoch_time = 0
+        
+        self.logs = ""
         
         # early stop
         self.patience = options.patience
@@ -30,6 +37,7 @@ class Trainer:
     
     def train(self, epoch):
         self.model.train()
+        start_time = time.time()
         t_loss_list = []
         t_pearsonr_list = []
         for batch_idx, (data, target) in enumerate(self.train_loader):
@@ -39,8 +47,6 @@ class Trainer:
             self.optimizer.zero_grad()
             output = self.model(data)
             loss = output - target * torch.log(output)
-            
-            loss2 = nn.PoissonNLLLoss()(output, target)
             loss = torch.mean(loss, dim=(1, 2))
             loss_list.extend(loss.tolist())
             pearsonr_list.extend(self.pearson_correlation_coefficient(output, target).mean(dim=1).tolist())
@@ -49,7 +55,7 @@ class Trainer:
             self.optimizer.step()
             if batch_idx != 0 and batch_idx % self.log_interval == 0:
                 print('Train Epoch: {:3} [{:4}/{:4} ({:3.0f}%)] \tLoss: {:.4f}, Pearsonr: {:.4f}'.format(
-                    epoch,
+                    self.epoch,
                     self.train_loader.batch_size * batch_idx,
                     len(self.train_loader.dataset),
                     100. * batch_idx / len(self.train_loader),
@@ -59,10 +65,13 @@ class Trainer:
                     break
             t_loss_list.extend(loss.tolist())
             t_pearsonr_list.extend(pearsonr_list)
-            
+        
         t_loss = sum(t_loss_list) / len(t_loss_list)
         t_pearsonr = sum(t_pearsonr_list) / len(t_pearsonr_list)
-        print('\ntrain set:    AverageLoss: {:.4f}, Pearsonr: {:.4f}\n'.format(t_loss, t_pearsonr))
+        self.logs = 'Epoch: {:2} - {:}s - train_loss: {:.4f} - train_r: {:.4f} - '.format(epoch,
+                                                                                      round(time.time() - start_time),
+                                                                                      t_loss,
+                                                                                      t_pearsonr)
     
     def valid(self):
         self.model.eval()
@@ -79,17 +88,18 @@ class Trainer:
         
         t_loss = sum(t_loss_list) / len(t_loss_list)
         t_pearsonr = sum(t_pearsonr_list) / len(t_pearsonr_list)
+        self.logs += 'valid_loss: {:.4f} - valid_r: {:.4f}'.format(t_loss, t_pearsonr)
         # early stop
         if t_loss < self.min_test_loss:
-            print('Valid set:    AverageLoss: {:.4f}, Pearsonr: {:.4f}     best!\n'.format(t_loss, t_pearsonr))
+            self.logs += ' - best!'
             self.min_test_loss = t_loss
             self.epochs_since_improvement = 0
             torch.save(self.model.state_dict(), self.model_path)
         else:
-            print('Valid set:    AverageLoss: {:.4f}, Pearsonr: {:.4f}\n'.format(t_loss, t_pearsonr))
             self.epochs_since_improvement += 1
+        
+        print(self.logs)
         
         if self.epochs_since_improvement >= self.patience:
             print(f'Stopping training early')
             exit(0)
-        

@@ -78,11 +78,11 @@ class SeqNN(nn.Module):
         self.switch_reverse = SwitchReverse()
     
     def forward(self, x):
-        # batch_size, 101372, 4  --》 batch_size, 4, 101372
+        # batch_size, 101372, 4  -->  batch_size, 4, 101372
         x = x.transpose(1, 2)
         
         # shift and stochastic reverse
-        self.reverse = torch.rand(1).item() > 0.5
+        #self.reverse = torch.rand(1).item() > 0.5
         if self.training and self.reverse:
             stochastic_reverse_complement = self.stochastic_reverse_complement(x)
             stochastic_shift = self.stochastic_shift(stochastic_reverse_complement)
@@ -125,6 +125,7 @@ class SeqNN(nn.Module):
         # reverse back
         if self.training and self.reverse:
             switch_reverse = self.switch_reverse(dense)
+            self.reverse = not self.reverse
         else:
             switch_reverse = dense
         # softplus
