@@ -35,7 +35,6 @@ def main():
     parser.add_option('--use_gpu', dest='use_gpu', default=True)
     (options, args) = parser.parse_args()
     data_dirs = args[0:]
-    print(1)
     use_cuda = options.use_gpu and torch.cuda.is_available()
     
     if use_cuda:
