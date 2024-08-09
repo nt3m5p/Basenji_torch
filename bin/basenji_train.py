@@ -16,8 +16,6 @@ from basenji.seqnn import SeqNN
 from basenji.trainer import Trainer
 
 warnings.filterwarnings('ignore')
-SEED = 1234
-torch.manual_seed(SEED)
 
 
 def main():
@@ -34,19 +32,25 @@ def main():
     parser.add_option('--model_path', dest='model_path', default="models/heart/best_model.pth")
     parser.add_option('--restore', dest='restore', default=False)
     parser.add_option('--log_interval', dest='log_interval', type=int, default=100, )
+    parser.add_option('--use_gpu', dest='use_gpu', default=True)
     (options, args) = parser.parse_args()
     data_dirs = args[0:]
     
-    device = torch.device("cpu")
+    use_cuda = options.use_gpu and torch.cuda.is_available()
+    
+    if use_cuda:
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
     
     # read datasets
     train_dataset = CustomDataset(data_dirs, '%s/ptrecords/train-*.pt')
     valid_dataset = CustomDataset(data_dirs, '%s/ptrecords/valid-*.pt')
-    train_loader = DataLoader(train_dataset, options.batch_size, shuffle=True, worker_init_fn=np.random.seed(SEED))
+    train_loader = DataLoader(train_dataset, options.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_dataset, options.batch_size)
     
     # build model
-    model = SeqNN().to(device)
+    model = SeqNN(device).to(device)
     if options.restore:
         model.load_state_dict(torch.load(options.model_path))
         print("Load best model from %s" % options.model_path)

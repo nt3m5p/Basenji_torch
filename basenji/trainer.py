@@ -5,7 +5,6 @@ from torch import nn
 from torchmetrics.regression import PearsonCorrCoef
 
 
-
 class Trainer:
     def __init__(self, options, model, device, train_loader, optimizer, test_loader):
         self.train_loader = train_loader
@@ -43,9 +42,9 @@ class Trainer:
         for batch_idx, (data, target) in enumerate(self.train_loader):
             loss_list = []
             pearsonr_list = []
-            data, target = data.to(self.device), target.to(self.device)
+            data, target = data.to(self.device), target
             self.optimizer.zero_grad()
-            output = self.model(data)
+            output = self.model(data).to('cpu')
             loss = output - target * torch.log(output)
             loss = torch.mean(loss, dim=(1, 2))
             loss_list.extend(loss.tolist())
@@ -69,9 +68,10 @@ class Trainer:
         t_loss = sum(t_loss_list) / len(t_loss_list)
         t_pearsonr = sum(t_pearsonr_list) / len(t_pearsonr_list)
         self.logs = 'Epoch: {:2} - {:}s - train_loss: {:.4f} - train_r: {:.4f} - '.format(epoch,
-                                                                                      round(time.time() - start_time),
-                                                                                      t_loss,
-                                                                                      t_pearsonr)
+                                                                                          round(
+                                                                                              time.time() - start_time),
+                                                                                          t_loss,
+                                                                                          t_pearsonr)
     
     def valid(self):
         self.model.eval()
@@ -79,8 +79,8 @@ class Trainer:
         t_pearsonr_list = []
         with torch.no_grad():
             for data, target in self.test_loader:
-                data, target = data.to(self.device), target.to(self.device)
-                output = self.model(data)
+                data, target = data.to(self.device), target
+                output = self.model(data).to('cpu')
                 loss = output - target * torch.log(output)
                 loss = torch.mean(loss, dim=(1, 2))
                 t_loss_list.extend(loss.tolist())

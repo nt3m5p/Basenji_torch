@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 
 
 class CustomDataset(Dataset):
-    def __init__(self, data_dirs,  file_pattern):
+    def __init__(self, data_dirs, file_pattern):
         self.data = []
         self.targets = []
         
@@ -15,7 +15,7 @@ class CustomDataset(Dataset):
                 data = torch.load(file_path, weights_only=True)
                 self.data.extend(data['sequence'])
                 self.targets.extend(data['target'])
-
+    
     def __len__(self):
         return len(self.data)
     
