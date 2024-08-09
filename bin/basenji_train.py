@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from __future__ import print_function
 
 import warnings
@@ -7,7 +9,6 @@ import numpy as np
 import torch
 import torch.nn.init as init
 from torch import optim
-from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 
 from basenji.CustomDataset import CustomDataset
