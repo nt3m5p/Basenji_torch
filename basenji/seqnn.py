@@ -132,3 +132,6 @@ class SeqNN(nn.Module):
             switch_reverse = dense
         # softplus
         return F.softplus(switch_reverse)
+
+    def l1_regularization(self, lambd=0.01):
+        return lambd * torch.sum(torch.abs(self.fc1.weight))
