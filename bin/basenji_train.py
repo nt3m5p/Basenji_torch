@@ -53,15 +53,8 @@ def main():
     if options.restore:
         model.load_state_dict(torch.load(options.model_path))
         print("Load best model from %s" % options.model_path)
-    else:
-        for name, param in model.named_parameters():
-            if 'weight' in name:
-                try:
-                    init.xavier_normal_(param, gain=1.0)
-                except:
-                    init.normal_(param, mean=0.0, std=1.0)
-            else:
-                init.constant_(param, 0)
+
+        
     optimizer = optim.SGD(model.parameters(), lr=options.lr, momentum=options.momentum)
     # scheduler = StepLR(optimizer, step_size=1, gamma=options.gamma)
     

@@ -46,7 +46,7 @@ class Trainer:
             self.optimizer.zero_grad()
             output = self.model(data).to('cpu')
             loss = output - target * torch.log(output)
-            loss = torch.mean(loss, dim=(1, 2))
+            loss = torch.mean(loss, dim=(1, 2)) + self.model.l2_regularization(0.001)
             loss_list.extend(loss.tolist())
             pearsonr_list.extend(self.pearson_correlation_coefficient(output, target).mean(dim=1).tolist())
             loss.mean().backward()

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import init
 
 
 class StochasticShift(nn.Module):
@@ -33,11 +34,16 @@ class SwitchReverse(nn.Module):
 
 
 class ConvBlock(nn.Module):
-    def __init__(self, in_channels=1, out_channels=32, kernel_size=3, stride=1, padding=1, dilation=1):
+    def __init__(self, in_channels=1, out_channels=32, kernel_size=3, stride=1, padding=1, dilation=1, norm_gamma='none'):
         super(ConvBlock, self).__init__()
         self.conv = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
                               stride=stride, padding=padding, dilation=dilation)
-        self.bn = nn.BatchNorm1d(out_channels, momentum=0.9)
+        init.kaiming_normal_(self.conv.weight, mode='fan_in')
+        self.bn = nn.BatchNorm1d(out_channels, momentum=0.90)
+        if norm_gamma == 'ones':
+            nn.init.ones_(self.bn.weight)
+        elif norm_gamma == 'zeros':
+            nn.init.zeros_(self.bn.weight)
     
     def forward(self, x):
         x = F.gelu(x)
@@ -48,10 +54,10 @@ class ConvBlock(nn.Module):
 class ConvConvDropBlock(nn.Module):
     def __init__(self, dropout=0.25, dilation=1):
         super(ConvConvDropBlock, self).__init__()
-        self.conv_block1 = ConvBlock(72, 32, 3, 1, dilation, dilation)
-        self.conv_block2 = ConvBlock(32, 72, 1, 1, 0, 1)
+        self.conv_block1 = ConvBlock(72, 32, 3, 1, dilation, dilation, norm_gamma="ones")
+        self.conv_block2 = ConvBlock(32, 72, 1, 1, 0, 1, norm_gamma="zeros")
         self.dropout = nn.Dropout1d(p=dropout)
-    
+            
     def forward(self, x):
         x = self.conv_block1(x)
         x = self.conv_block2(x)
@@ -77,6 +83,7 @@ class SeqNN(nn.Module):
         self.conv_block3 = ConvBlock(72, 64, kernel_size=1, stride=1, padding=0)
         self.dropout = nn.Dropout(p=0.05)
         self.fc1 = nn.Linear(64, 3)
+        nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in')
         self.switch_reverse = SwitchReverse()
     
     def forward(self, x):
@@ -135,3 +142,10 @@ class SeqNN(nn.Module):
 
     def l1_regularization(self, lambd=0.01):
         return lambd * torch.sum(torch.abs(self.fc1.weight))
+    
+    def l2_regularization(model, coeff=0.01):
+        loss = 0
+        for name, param in model.named_parameters():
+            if 'conv.weight' in name:
+                loss += torch.norm(param) ** 2
+        return coeff * loss
