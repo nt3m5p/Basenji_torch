@@ -11,7 +11,16 @@ class StochasticShift(nn.Module):
     
     def forward(self, x):
         shift_amount = torch.randint(-self.max_shift, self.max_shift + 1, (1,))
-        return torch.roll(x, shifts=shift_amount.item(), dims=-1)
+        x = torch.roll(x, shifts=shift_amount.item(), dims=-1)
+        if shift_amount.item() > 0:
+            # 当平移量为正，序列前面填充零
+            padding = torch.zeros((x.size(0), x.size(1), shift_amount.item()), device=x.device)
+            x = torch.cat((padding, x[:, :, :-shift_amount.item()]), dim=-1)
+        elif shift_amount.item() < 0:
+            # 当平移量为负，序列后面填充零
+            padding = torch.zeros((x.size(0), x.size(1), -shift_amount.item()), device=x.device)
+            x = torch.cat((x[:, :, :shift_amount.item()], padding), dim=-1)
+        return x
 
 
 class StochasticReverseComplement(nn.Module):

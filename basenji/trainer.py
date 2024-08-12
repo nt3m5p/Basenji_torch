@@ -74,32 +74,33 @@ class Trainer:
                                                                                           t_pearsonr)
     
     def valid(self):
-        self.model.eval()
-        t_loss_list = []
-        t_pearsonr_list = []
         with torch.no_grad():
-            for data, target in self.test_loader:
-                data, target = data.to(self.device), target
-                output = self.model(data).to('cpu')
-                loss = output - target * torch.log(output)
-                loss = torch.mean(loss, dim=(1, 2))
-                t_loss_list.extend(loss.tolist())
-                t_pearsonr_list.extend(self.pearson_correlation_coefficient(output, target).mean(dim=1).tolist())
-        
-        t_loss = sum(t_loss_list) / len(t_loss_list)
-        t_pearsonr = sum(t_pearsonr_list) / len(t_pearsonr_list)
-        self.logs += 'valid_loss: {:.4f} - valid_r: {:.4f}'.format(t_loss, t_pearsonr)
-        # early stop
-        if t_loss < self.min_test_loss:
-            self.logs += ' - best!'
-            self.min_test_loss = t_loss
-            self.epochs_since_improvement = 0
-            torch.save(self.model.state_dict(), self.model_path)
-        else:
-            self.epochs_since_improvement += 1
-        
-        print(self.logs)
-        
-        if self.epochs_since_improvement >= self.patience:
-            print(f'Stopping training early')
-            exit(0)
+            self.model.eval()
+            t_loss_list = []
+            t_pearsonr_list = []
+            with torch.no_grad():
+                for data, target in self.test_loader:
+                    data, target = data.to(self.device), target
+                    output = self.model(data).to('cpu')
+                    loss = output - target * torch.log(output)
+                    loss = torch.mean(loss, dim=(1, 2))
+                    t_loss_list.extend(loss.tolist())
+                    t_pearsonr_list.extend(self.pearson_correlation_coefficient(output, target).mean(dim=1).tolist())
+            
+            t_loss = sum(t_loss_list) / len(t_loss_list)
+            t_pearsonr = sum(t_pearsonr_list) / len(t_pearsonr_list)
+            self.logs += 'valid_loss: {:.4f} - valid_r: {:.4f}'.format(t_loss, t_pearsonr)
+            # early stop
+            if t_loss < self.min_test_loss:
+                self.logs += ' - best!'
+                self.min_test_loss = t_loss
+                self.epochs_since_improvement = 0
+                torch.save(self.model.state_dict(), self.model_path)
+            else:
+                self.epochs_since_improvement += 1
+            
+            print(self.logs)
+            
+            if self.epochs_since_improvement >= self.patience:
+                print(f'Stopping training early')
+                exit(0)

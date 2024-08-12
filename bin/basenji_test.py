@@ -124,7 +124,7 @@ def main():
     test_loader = DataLoader(test_dataset, batch_size=4)
     
     # initialize model
-    seqnn_model = seqnn.SeqNN()
+    seqnn_model = seqnn.SeqNN("cpu")
     seqnn_model.load_state_dict(torch.load(model_file, weights_only=True))
     seqnn_model.eval()
     #######################################################
