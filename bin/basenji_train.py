@@ -63,7 +63,7 @@ def main():
     for epoch in range(1, options.epochs + 1):
         trainer.train(epoch)
         
-        trainer.test(DataLoader(CustomDataset(data_dirs, '%s/ptrecords/valid-*.pt'), options.batch_size))
+        trainer.test(DataLoader(CustomDataset(data_dirs, '%s/ptrecords/test-*.pt'), options.batch_size))
         trainer.valid()
         # scheduler.step()
 
