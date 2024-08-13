@@ -51,8 +51,10 @@ class ConvBlock(nn.Module):
         self.bn = nn.BatchNorm1d(out_channels, momentum=0.90)
         if norm_gamma == 'ones':
             nn.init.ones_(self.bn.weight)
+            self.bn.weight.data.fill_(1)
         elif norm_gamma == 'zeros':
             nn.init.zeros_(self.bn.weight)
+            #self.bn.weight.data.fill_(0)
     
     def forward(self, x):
         x = F.gelu(x)
@@ -84,11 +86,11 @@ class SeqNN(nn.Module):
         self.conv_block1 = ConvBlock(64, 64, kernel_size=5, stride=1, padding=2)
         self.conv_block2 = ConvBlock(64, 72, kernel_size=5, stride=1, padding=2)
         self.conv_conv_dropout = ConvConvDropBlock(dilation=1)
-        self.conv_conv_dropout1 = ConvConvDropBlock(dilation=2)
-        self.conv_conv_dropout2 = ConvConvDropBlock(dilation=4)
-        self.conv_conv_dropout3 = ConvConvDropBlock(dilation=8)
-        self.conv_conv_dropout4 = ConvConvDropBlock(dilation=16)
-        self.conv_conv_dropout5 = ConvConvDropBlock(dilation=32)
+        self.conv_conv_dropout1 = ConvConvDropBlock(dilation=1)
+        self.conv_conv_dropout2 = ConvConvDropBlock(dilation=1)
+        self.conv_conv_dropout3 = ConvConvDropBlock(dilation=1)
+        self.conv_conv_dropout4 = ConvConvDropBlock(dilation=1)
+        self.conv_conv_dropout5 = ConvConvDropBlock(dilation=1)
         self.conv_block3 = ConvBlock(72, 64, kernel_size=1, stride=1, padding=0)
         self.dropout = nn.Dropout(p=0.05)
         self.fc1 = nn.Linear(64, 3)
