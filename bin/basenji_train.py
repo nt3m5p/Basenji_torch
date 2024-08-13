@@ -27,7 +27,7 @@ def main():
     parser.add_option('--dry_run', dest='dry_run', default=False)
     parser.add_option('--batch_size', dest='batch_size', default=4)
     parser.add_option('--momentum', dest='momentum', default=0.99)
-    parser.add_option('--patience', dest='patience', default=8)
+    parser.add_option('--patience', dest='patience', type=int, default=8)
     parser.add_option('--clip_norm', dest='clip_norm', default=2)
     parser.add_option('--model_path', dest='model_path', default="models/heart/best_model.pth")
     parser.add_option('--restore', dest='restore', default=False)
