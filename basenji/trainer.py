@@ -76,8 +76,6 @@ class Trainer:
             loss = output - target * torch.log(output)
             loss = torch.mean(loss, dim=(1, 2))# + self.model.l2_regularization(0.001).to('cpu')
             loss_list.extend(loss.tolist())
-            t = self.pearson_r(target, output).mean(dim=1).tolist()
-            t2 = self.pearson_correlation_coefficient(output, target).mean(dim=1).tolist()
             pearsonr_list.extend(self.pearson_r(output, target).mean(dim=1).tolist())
             loss.mean().backward()
             nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.clip_norm)
