@@ -133,21 +133,4 @@ class Trainer:
             if self.epochs_since_improvement >= self.patience:
                 print(f'Stopping training early')
                 exit(0)
-    
-    def test(self, test_loader=None):
-        with torch.no_grad():
-            self.model.eval()
-            t_loss_list = []
-            t_pearsonr_list = []
-            with torch.no_grad():
-                for data, target in test_loader:
-                    data, target = data.to(self.device), target
-                    output = self.model(data).to('cpu')
-                    loss = output - target * torch.log(output)
-                    loss = torch.mean(loss, dim=(1, 2))
-                    t_loss_list.extend(loss.tolist())
-                    t_pearsonr_list.extend(self.pearson_r(output, target).mean(dim=1).tolist())
-            
-            t_loss = sum(t_loss_list) / len(t_loss_list)
-            t_pearsonr = sum(t_pearsonr_list) / len(t_pearsonr_list)
-            self.logs += 'test_loss: {:.4f} - test_r: {:.4f} - '.format(t_loss, t_pearsonr)
+
