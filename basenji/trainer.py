@@ -35,7 +35,8 @@ class Trainer:
                 r[i, j] = PearsonCorrCoef()(a[i, :, j], b[i, :, j])
         return r
     
-    def pearson_r(self,y_pred, y_true):
+    @staticmethod
+    def pearson_r(y_pred, y_true):
         true_mean = torch.mean(y_true, dim=1)
         true_mean2 = torch.square(true_mean)
         pred_mean = torch.mean(y_pred, dim=1)
